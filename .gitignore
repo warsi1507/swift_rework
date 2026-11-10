@@ -48,7 +48,10 @@ ml/data/
 ml/checkpoints/
 ml/results/
 ml/plots/
-data/library/
+
+data/library/*
+!data/library/
+!data/library/*.lib
 
 # Training bundle archives
 train_bundle.zip
@@ -59,3 +62,5 @@ abc/abc
 abc/lib/
 abc.history
 build/
+
+docs/

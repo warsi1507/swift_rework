@@ -20,30 +20,43 @@ from dataset import UNSEEN_CIRCUITS
 
 
 def plot_qor_vs_k(df: pd.DataFrame, plot_out: Path):
-    plt.figure(figsize=(10, 6))
-    for c_name, grp in df.groupby('circuit'):
+    fig, ax = plt.subplots(figsize=(10, 6.5))
+    colors = plt.cm.tab20.colors
+    circuit_names = sorted(df['circuit'].unique())
+    for i, (c_name, grp) in enumerate(df.groupby('circuit')):
         grp = grp.sort_values('K')
-        plt.plot(grp['K'], grp['qor_loss'], marker='o', markersize=3, linewidth=1,
-                 alpha=0.5, color='tab:gray')
+        ax.plot(grp['K'], grp['qor_loss'], marker='o', markersize=3.5, linewidth=1.2,
+                alpha=0.8, color=colors[i % len(colors)], zorder=2)
     mean = df.groupby('K')['qor_loss'].mean().reset_index().sort_values('K')
-    plt.plot(mean['K'], mean['qor_loss'], marker='s', linewidth=2.5,
-             color='black', label='Average QoR loss')
-    plt.xlabel('Library Size K', fontsize=12)
-    plt.ylabel('QoR Loss (%)', fontsize=12)
-    plt.title('QoR Loss vs Library Size K', fontsize=13, fontweight='bold')
-    plt.legend()
-    plt.grid(True, alpha=0.3)
-    plt.tight_layout()
+    ax.plot(mean['K'], mean['qor_loss'], marker='s', linewidth=2.5,
+            color='black', label='Average QoR loss', zorder=3)
+    ax.set_xlabel('K (Top-K Selected Supergates)', fontsize=12)
+    ax.set_ylabel('QoR Loss (%)', fontsize=12)
+    ax.set_title('QoR Loss vs K for Top-15 Largest Circuits', fontsize=13, fontweight='bold')
+    ax.set_xlim(0, 2000)
+    ax.set_ylim(0, 50)
+    ax.set_xticks(range(0, 2001, 250))
+    ax.set_yticks(range(0, 51, 10))
+    handles = [plt.Line2D([0], [0], color=colors[i % len(colors)], linewidth=1.2, label=name)
+               for i, name in enumerate(circuit_names)]
+    handles.append(plt.Line2D([0], [0], color='black', linewidth=2.5, label='Average QoR loss'))
+    ax.legend(handles=handles, ncol=2, fontsize=8, loc='upper right')
+    ax.grid(True, alpha=0.3)
+    fig.text(0.5, 0.01,
+             'Figure 11: QoR loss for 15 considered circuits with increase in '
+             'Supergate Library size (K).',
+             ha='center', va='bottom', fontsize=10)
+    fig.subplots_adjust(bottom=0.12)
     plot_out.parent.mkdir(parents=True, exist_ok=True)
-    plt.savefig(plot_out, dpi=200)
-    plt.close()
+    fig.savefig(plot_out, dpi=200)
+    plt.close(fig)
     print(f"Plot saved to: {plot_out}")
 
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--checkpoint', type=str, default='ml/checkpoints/best_model.pth')
-    parser.add_argument('--k-values', type=str, default='100,200,300,500')
+    parser.add_argument('--k-values', type=str, default='100,200,300,500,1000,2000')
     parser.add_argument('--unseen', action='store_true', help="run on the unseen circuit set")
     parser.add_argument('--abc', type=str, default='abc/abc')
     parser.add_argument('--genlib', type=str, default='data/library/library.genlib')

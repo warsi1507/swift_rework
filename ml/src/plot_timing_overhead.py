@@ -9,6 +9,7 @@ import os
 import re
 import glob
 import argparse
+import textwrap
 import subprocess
 import numpy as np
 import pandas as pd
@@ -132,36 +133,51 @@ def main():
 
     # Panel (a): Mapping time vs circuit size
     ax1 = axes[0]
-    markers = ['x', '^', 'o'][:len(lib_specs)]
-    colors_a = ['black', 'goldenrod', 'green'][:len(lib_specs)]
-    for (lib_label, _, _), mk, col in zip(lib_specs, markers, colors_a):
-        ax1.scatter(df['nodes'], df[f'{lib_label}_map'], color=col, marker=mk, label=lib_label, s=30)
+    colors_a = ['tab:blue', 'tab:orange', 'tab:green'][:len(lib_specs)]
+    for (lib_label, _, _), col in zip(lib_specs, colors_a):
+        ax1.scatter(df['nodes'], df[f'{lib_label}_map'], color=col, marker='o',
+                    label=lib_label, s=30)
     ax1.set_xlabel('Circuit Size (AND nodes)', fontsize=11)
     ax1.set_ylabel('Mapping Time (seconds)', fontsize=11)
-    ax1.set_title('(a) Mapping Time vs Circuit Size', fontsize=12, fontweight='bold')
-    ax1.legend()
+    ax1.set_title('Mapping Time vs Circuit Size', fontsize=12, fontweight='bold')
+    ax1.set_xlim(0, max(200000, int(df['nodes'].max() * 1.05)))
+    ax1.set_ylim(0, max(40, np.ceil(df[[f'{l}_map' for l, _, _ in lib_specs]].max().max() * 1.1)))
+    ax1.legend(loc='upper left')
     ax1.grid(True, alpha=0.3)
+    ax1.text(-0.08, 1.05, '(a)', transform=ax1.transAxes, fontsize=13,
+             fontweight='bold', va='top')
 
     # Panel (b): Total mapping time across circuits, with GNN inference latency stacked
     ax2 = axes[1]
-    labels = [spec[0].replace(' (', '\n(') for spec in lib_specs]
+    labels = [spec[0] for spec in lib_specs]
     totals = [df[f'{spec[0]}_map'].sum() for spec in lib_specs]
     inf_totals = [spec[2] * len(df) for spec in lib_specs]
-    colors = ['green', 'goldenrod', 'red'][:len(lib_specs)]
-    bars = ax2.bar(labels, totals, color=colors, width=0.55, edgecolor='black',
+    colors_b = colors_a
+    bars = ax2.bar(labels, totals, color=colors_b, width=0.55, edgecolor='black',
                    label='mapping time')
     inf_bars = ax2.bar(labels, inf_totals, bottom=totals, color='gray', width=0.55,
                        edgecolor='black', label='GNN inference')
     ax2.set_ylabel('Total Mapping Time (seconds)', fontsize=11)
-    ax2.set_title('(b) Total Mapping Time', fontsize=12, fontweight='bold')
+    ax2.set_title(f'Total Mapping Time ({len(df)} circuits)', fontsize=12, fontweight='bold')
     ax2.grid(True, alpha=0.3, axis='y')
-    ax2.legend()
+    ax2.text(-0.08, 1.05, '(b)', transform=ax2.transAxes, fontsize=13,
+             fontweight='bold', va='top')
 
     for bar, val, inf_val in zip(bars, totals, inf_totals):
         ax2.text(bar.get_x() + bar.get_width()/2, val + inf_val + 2.0, f"{val + inf_val:.2f}s",
                  ha='center', va='bottom', fontweight='bold')
 
-    plt.tight_layout()
+    lib_desc = ', '.join(spec[0] for spec in lib_specs)
+    caption = (f'Figure 12: Circuit size versus mapping runtime for three supergate library '
+               f'scales ({lib_desc}) derived from the ASAP7 7nm cell library. '
+               f'(a) Mapping runtime per circuit versus circuit size, where each point '
+               f'represents a design. (b) Total mapping time across {len(df)} benchmark '
+               f'circuits for each library configuration, illustrating the runtime overhead '
+               f'with increasing library size.')
+    caption_lines = textwrap.wrap(caption, 115)
+    fig.text(0.5, 0.01, '\n'.join(caption_lines), ha='center', va='bottom', fontsize=9.5)
+
+    fig.subplots_adjust(bottom=0.07 + 0.02 * len(caption_lines), top=0.9)
     plt.savefig(out_path, dpi=200)
     plt.close()
     print(f"\nTiming plot successfully saved to: {out_path}")

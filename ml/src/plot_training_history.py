@@ -6,6 +6,7 @@ Generates: ml/plots/training_dynamics.png
 """
 
 import argparse
+import textwrap
 import pandas as pd
 import matplotlib.pyplot as plt
 from pathlib import Path
@@ -19,40 +20,56 @@ def main():
 
     df = pd.read_csv(args.history)
     epochs = df['epoch']
+    n_epochs = len(df)
 
-    fig, axes = plt.subplots(1, 3, figsize=(16, 4.5))
+    fig = plt.figure(figsize=(12, 8))
+    gs = fig.add_gridspec(2, 2, height_ratios=[1, 1])
+    ax_a = fig.add_subplot(gs[0, 0])
+    ax_b = fig.add_subplot(gs[0, 1])
+    ax_c = fig.add_subplot(gs[1, :])
 
-    ax = axes[0]
-    ax.plot(epochs, df['train_loss'], marker='o', label='Training loss')
-    ax.plot(epochs, df['val_loss'], marker='s', label='Validation loss')
-    ax.set_xlabel('Epoch')
-    ax.set_ylabel('Loss')
-    ax.set_title('(a) Training and Validation Loss')
-    ax.legend()
-    ax.grid(True, alpha=0.3)
+    ax_a.plot(epochs, df['train_loss'], marker='o', color='tab:blue', label='Train Loss')
+    ax_a.plot(epochs, df['val_loss'], marker='o', color='tab:orange', label='Validation Loss')
+    ax_a.set_xlabel('Epoch')
+    ax_a.set_ylabel('Loss')
+    ax_a.set_title('Training and Validation Loss')
+    ax_a.legend()
+    ax_a.grid(True, alpha=0.3)
+    ax_a.text(-0.08, 1.05, '(a)', transform=ax_a.transAxes, fontsize=13,
+              fontweight='bold', va='top')
 
-    ax = axes[1]
-    ax.plot(epochs, df['f1'], marker='o', color='tab:blue')
-    ax.set_xlabel('Epoch')
-    ax.set_ylabel('F1 Score')
-    ax.set_title('(b) Validation F1 Score')
-    ax.grid(True, alpha=0.3)
+    ax_b.plot(epochs, df['f1'], marker='o', color='tab:green', label='Validation F1')
+    ax_b.set_xlabel('Epoch')
+    ax_b.set_ylabel('F1 Score')
+    ax_b.set_title('F1 by Epoch')
+    ax_b.legend(loc='lower right')
+    ax_b.grid(True, alpha=0.3)
+    ax_b.text(-0.08, 1.05, '(b)', transform=ax_b.transAxes, fontsize=13,
+              fontweight='bold', va='top')
 
-    ax = axes[2]
-    ax.plot(epochs, df['precision'], marker='o', label='Precision')
-    ax.plot(epochs, df['recall'], marker='s', label='Recall')
-    ax.plot(epochs, df['f1'], marker='^', label='F1')
-    ax.set_xlabel('Epoch')
-    ax.set_ylabel('Score')
-    ax.set_title('(c) Classification Metrics')
-    ax.legend()
-    ax.grid(True, alpha=0.3)
+    ax_c.plot(epochs, df['precision'], marker='o', color='tab:blue', label='Precision')
+    ax_c.plot(epochs, df['recall'], marker='o', color='tab:orange', label='Recall')
+    ax_c.plot(epochs, df['f1'], marker='o', color='tab:green', label='F1 Score')
+    ax_c.set_xlabel('Epoch')
+    ax_c.set_ylabel('Score')
+    ax_c.set_title('Classification Metrics by Epoch')
+    ax_c.legend(loc='center right')
+    ax_c.grid(True, alpha=0.3)
+    ax_c.text(-0.04, 1.05, '(c)', transform=ax_c.transAxes, fontsize=13,
+              fontweight='bold', va='top')
 
-    plt.tight_layout()
+    caption = (f'Figure 10: Training dynamics of the model across epochs: (a) training and '
+               f'validation loss, (b) validation F1 score, and (c) classification metrics '
+               f'(precision, recall, and F1). The model exhibits stable convergence and '
+               f'balanced classification performance across the {n_epochs} training epochs.')
+    caption_lines = textwrap.wrap(caption, 110)
+    fig.text(0.5, 0.01, '\n'.join(caption_lines), ha='center', va='bottom', fontsize=10)
+
+    fig.subplots_adjust(bottom=0.07 + 0.02 * len(caption_lines), top=0.93)
     out = Path(args.plot_out)
     out.parent.mkdir(parents=True, exist_ok=True)
-    plt.savefig(out, dpi=200)
-    plt.close()
+    fig.savefig(out, dpi=200)
+    plt.close(fig)
     print(f"Training dynamics plot saved to: {out}")
 
 
